@@ -1,0 +1,291 @@
+1) Lexical Semantics- Design Python program to do text classification.
+# Import necessary libraries
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+# Load the 20 newsgroups dataset
+newsgroups = fetch_20newsgroups(subset='all')
+categories = newsgroups.target_names
+# Split the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(newsgroups.data, newsgroups.target, 
+test_size=0.3, random_state=42)
+# Initialize the TF-IDF Vectorizer and transform the data
+vectorizer = TfidfVectorizer(stop_words='english', max_df=0.7)
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+# Train the Logistic Regression classifier
+classifier = LogisticRegression(max_iter=1000, random_state=42)
+classifier.fit(X_train_tfidf, y_train)
+# Predict the labels for the test set and print accuracy
+y_pred = classifier.predict(X_test_tfidf)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy * 100:.2f}%")
+# Function to classify new text data
+def classify_text(text):
+ text_tfidf = vectorizer.transform([text])
+ prediction = classifier.predict(text_tfidf)
+ return categories[prediction[0]]
+# Example usage
+new_text = "NASA launches a new space mission."
+predicted_category = classify_text(new_text)
+print(f"The predicted category for the new text is: {predicted_category}")
+Output: Accuracy: 90.13%
+ The predicted category for the new text is: sci.space
+2) Meaning Representation- Implement a Python program to represent the meaning 
+of the given text.
+import nltk
+def represent_meaning(text):
+ """
+ This function takes a sentence and returns a simple dictionary 
+ representing its meaning based on part-of-speech tags.
+ """
+ # Download nltk resources if not already installed
+ nltk.download('punkt')
+ nltk.download('averaged_perceptron_tagger')
+ # Tokenize the sentence
+ tokens = nltk.word_tokenize(text)
+ # Get part-of-speech tags for each token
+ tags = nltk.pos_tag(tokens)
+ # Create a dictionary to represent meaning
+ meaning = {}
+ for token, tag in tags:
+ if tag.startswith('VB'): # Verbs
+ meaning['action'] = token
+ elif tag.startswith('NN'): # Nouns
+ if 'subject' not in meaning:
+ meaning['subject'] = token
+ else:
+ meaning['object'] = token
+ elif tag.startswith('JJ'): # Adjectives
+ meaning['adjective'] = token
+ return meaning
+# Example usage
+sentence = "The cat chased the mouse."
+meaning = represent_meaning(sentence)
+print(sentence)
+print(meaning) 
+Output: The cat chased the mouse.
+ {'subject': 'cat', 'action': 'chased', 'object': 'mouse'}
+3) Disambiguity-Design the lesk algorithm in Python to handle word sense
+disambiguation.
+# Import necessary libraries
+import nltk
+from nltk.corpus import wordnet as wn
+from nltk.tokenize import word_tokenize
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+nltk.download('punkt')
+# Function to compute overlap between context and gloss
+def compute_overlap(context, gloss):
+ context = set(context)
+ gloss = set(gloss)
+ return len(context & gloss)
+# Lesk algorithm for word sense disambiguation
+def lesk_algorithm(word, sentence):
+ # Tokenize the sentence and get the context
+ context = word_tokenize(sentence)
+ 
+ # Get all synsets (senses) of the word
+ synsets = wn.synsets(word)
+ 
+ if not synsets:
+ return None
+ 
+ # Initialize variables to keep track of the best sense and max overlap
+ best_sense = synsets[0]
+ max_overlap = 0
+ 
+ for sense in synsets:
+ # Get the gloss of the current sense and tokenize it
+ gloss = word_tokenize(sense.definition())
+ 
+ # Compute the overlap between context and gloss
+ overlap = compute_overlap(context, gloss)
+ 
+ # Update best_sense if the current sense has more overlap
+ if overlap > max_overlap:
+ max_overlap = overlap
+ best_sense = sense 
+ return best_sense
+# Example usage
+sentence = "I went to the bank to deposit my money."
+word = "money"
+sense = lesk_algorithm(word, sentence)
+if sense:
+ print(f"The best sense for '{word}' in the sentence is: {sense.name()}")
+ print(f"Definition: {sense.definition()}")
+else:
+ print(f"No senses found for the word '{word}'.")
+Output: The best sense for 'money' in the sentence is: money.n.03
+ Definition: the official currency issued by a government or national bank
+Module 5
+1) Information Extraction- Design Python programs to extract structured
+information from unstructured information.
+import spacy
+import email
+from email.policy import default
+# Check if spaCy model is installed and download if necessary
+try:
+ nlp = spacy.load("en_core_web_sm")
+except OSError:
+ import subprocess
+ import sys
+ subprocess.check_call([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'])
+ nlp = spacy.load("en_core_web_sm")
+def named_entity_recognition(text):
+ """
+ Perform Named Entity Recognition (NER) on the given text using spaCy.
+ 
+ Args:
+ text (str): The text to process.
+ 
+ Returns:
+ list: A list of tuples containing entities and their labels.
+ """
+ # Process the text
+ doc = nlp(text)
+ # Extract named entities
+ entities = [(ent.text, ent.label_) for ent in doc.ents]
+ return entities
+# Sample email content
+email_content = """From: sender@example.com
+To: recipient@example.com
+Subject: Sample Email
+This is a sample email for testing information extraction.
+"""
+# Parse the email content
+msg = email.message_from_string(email_content, policy=default)
+# Extract and print email fields
+from_address = msg['From']
+to_address = msg['To']
+subject = msg['Subject']
+body = msg.get_body(preferencelist=('plain')).get_content()
+print("Named Entity Recognition with spaCy:")
+entities = named_entity_recognition(body)
+for entity, label in entities:
+ print(f"Entity: {entity}, Label: {label}")
+print("\nExtracting Information from Emails:")
+print(f"From: {from_address}")
+print(f"To: {to_address}")
+print(f"Subject: {subject}")
+print(f"Body:\n{body}")
+Output: Named Entity Recognition with spaCy:
+Extracting Information from Emails:
+From: sender@example.com
+To: recipient@example.com
+Subject: Sample Email
+Body:
+This is a sample email for testing information extraction.
+2) Filtering Stop Words- Implement a python program to filtering stopwords.
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+# Download NLTK stopwords
+nltk.download('stopwords')
+nltk.download('punkt')
+# Sample text
+text = "NLTK is a leading platform for building Python programs to work with human 
+language data."
+# Tokenize the text
+tokens = word_tokenize(text)
+# Get English stopwords from NLTK
+stop_words = set(stopwords.words('english'))
+# Filter out stopwords
+filtered_tokens = [word for word in tokens if word.lower() not in stop_words]
+# Print filtered tokens
+print("Original Text:")
+print(text)
+print("\nFiltered Text (without stopwords):")
+print(" ".join(filtered_tokens))
+Output: 
+Original Text:
+NLTK is a leading platform for building Python programs to work with human language 
+data.
+Filtered Text (without stopwords):
+NLTK leading platform building Python programs work human language data .
+3) Stemming- Design a Python program to reduce an inflected word down to its word 
+stem.
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+def stem_text(text):
+ # Initialize Porter Stemmer
+ stemmer = PorterStemmer()
+ 
+ # Tokenize the text into words
+ words = word_tokenize(text)
+ 
+ # Stem each word in the text
+ stemmed_words = [stemmer.stem(word) for word in words]
+ 
+ # Join stemmed words back into sentence
+ stemmed_text = ' '.join(stemmed_words)
+ 
+ return stemmed_text
+# Example usage:
+text = "Stemming is used to reduce words down to their word stem."
+stemmed_text = stem_text(text)
+print("Original Text:")
+print(text)
+print("\nText after stemming:")
+print(stemmed_text)
+Output: 
+Original Text:
+Stemming is used to reduce words down to their word stem.
+Text after stemming:
+stem is use to reduc word down to their word stem .
+4) Question Answering System- Design a questioning answer system using Python.
+import nltk
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+# Example corpus of texts
+corpus = [
+ "Albert Einstein was a German-born theoretical physicist who developed the theory 
+of relativity.",
+ "The Mona Lisa is a half-length portrait painting by the Italian artist Leonardo da 
+Vinci.",
+ "Python is an interpreted, high-level, general-purpose programming language.",
+ "Mount Everest is the highest mountain in the world, located in Nepal."
+]
+# Preprocess texts
+def preprocess_text(text):
+ tokens = nltk.word_tokenize(text.lower())
+ return ' '.join(tokens)
+processed_corpus = [preprocess_text(text) for text in corpus]
+# Vectorize texts using TF-IDF
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(processed_corpus)
+# Function to answer questions
+def answer_question(question):
+ question_vec = vectorizer.transform([preprocess_text(question)])
+ similarities = cosine_similarity(question_vec, X)
+ idx = similarities.argmax()
+ return corpus[idx]
+# Example questions
+questions = [
+ "Who developed the theory of relativity?",
+ "What is the Mona Lisa?",
+ "What is Python used for?",
+ "Where is Mount Everest located?"
+]
+# Answering each question
+for question in questions:
+ print("Question:", question)
+ print("Answer:", answer_question(question))
+ print()
+Output:
+Question: Who developed the theory of relativity?
+Answer: Albert Einstein was a German-born theoretical physicist who developed the 
+theory of relativity.
+Question: What is the Mona Lisa?
+Answer: The Mona Lisa is a half-length portrait painting by the Italian artist Leonardo 
+da Vinci.
+Question: What is Python used for?
+Answer: Python is an interpreted, high-level, general-purpose programming language.
+Question: Where is Mount Everest located?
+Answer: Mount Everest is the highest mountain in the world, located in Nepa
